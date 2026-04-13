@@ -1,4 +1,4 @@
-# boston-house-price-analysis
+# Boston House Price Analysis
 
 Multivariable regression model predicting 1970s Boston house prices from 13 neighbourhood features.
 
