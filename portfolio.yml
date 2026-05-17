@@ -1,0 +1,38 @@
+title: Boston House Price Analysis
+slug: boston-house-price-analysis
+category: data
+date: 2026-05-17
+featured: false
+tags: data-analysis, visualisation, python, machine-learning, CI-CD, scripting
+tech_stack: Python, pandas, NumPy, Matplotlib, Seaborn, Plotly, scikit-learn, Jupyter, GitHub Actions
+repo_url: https://github.com/xavier-oc-programming/boston-house-price-analysis
+live_url: https://xavier-oc-programming.github.io/boston-house-price-analysis/notebook_web_render/
+demo_url:
+notebook_url: https://xavier-oc-programming.github.io/boston-house-price-analysis/notebook_web_render/
+
+short_description: |
+  Which neighbourhood features drive 1970s Boston house prices? Log-transforming the target raises test r² from 0.67 to 0.74. Each extra room adds ~$3,109; pollution is the strongest depressor of value.
+
+full_description: |
+  This analysis works through 506 Boston census tracts from the Harrison & Rubinfeld (1978) dataset, fitting a multivariable linear regression across 13 socio-economic and geographic features to explain median residential property values. The pipeline covers data cleaning, exploratory visualisation (distributions, pair plots, joint plots), an 80/20 train/test split, model fitting, residual diagnostics, and a working valuation function that converts any set of property characteristics into a dollar estimate.
+
+  The raw price distribution carries a positive skew (1.46) that inflates the residuals. Applying a log transformation to the target reduces residual skew to 0.09 and lifts test-set r² from 0.67 to 0.74. Number of rooms is the strongest positive predictor — each additional room is worth approximately $3,109. Nitric oxide pollution carries the largest negative coefficient in the log model (−0.70). River proximity raises estimated prices, while poverty level and pupil-to-teacher ratio both depress them. An average Boston property across all features is estimated at $20,703; an 8-room river-front property in a low-poverty neighbourhood is estimated at $25,792.
+
+problem: |
+  Real estate valuation depends on dozens of overlapping factors — proximity to employment, school quality, crime, pollution, room count — and it is not obvious which factors matter most or by how much. The goal was to quantify these relationships for 1970s Boston and build a model that can estimate a property's value from its observable characteristics alone.
+
+solution: |
+  A multivariable ordinary least squares regression was fitted on 13 features after an 80/20 train/test split (random_state=10 for reproducibility). The initial model was evaluated using r² and residual diagnostics. Residual skew of 1.46 indicated that the price distribution violated the normality assumption. A log transformation was applied to the target, and a second model was trained on log prices. Coefficients were interpreted for sign and magnitude; the valuation function inverts the log transformation via np.exp() to convert predictions back to dollar values.
+
+challenges: |
+  The raw price distribution has a pronounced right skew (1.46), driven partly by a hard cap at $50,000 visible in the scatter plots. Deciding whether to apply a transformation — and validating that it actually helped rather than just appearing to — required comparing residual distributions and both training and test r² across the two models. The improvement in test r² (0.67 → 0.74) and residual skew (1.46 → 0.09) confirmed the transformation was warranted rather than cosmetic.
+
+results: |
+  - Log model test r²: 0.74 (vs. 0.67 for the raw model)
+  - Log model training r²: 0.79 (vs. 0.75 for the raw model)
+  - Residual skew reduced from 1.46 to 0.09 after log transformation
+  - Each additional room (RM) adds approximately $3,109 to estimated property value
+  - Pollution (NOX) carries the largest negative coefficient in the log model (−0.70)
+  - Average Boston property estimated at $20,703 using mean values across all 13 features
+  - 8-room river-front property in low-poverty area estimated at $25,792
+  - 35 of 506 properties border the Charles River

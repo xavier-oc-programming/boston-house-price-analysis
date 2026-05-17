@@ -1,30 +1,39 @@
+![Python](https://img.shields.io/badge/Python-blue)
+![pandas](https://img.shields.io/badge/pandas-blue)
+![NumPy](https://img.shields.io/badge/NumPy-blue)
+![Matplotlib](https://img.shields.io/badge/Matplotlib-orange)
+![Seaborn](https://img.shields.io/badge/Seaborn-orange)
+![Plotly](https://img.shields.io/badge/Plotly-purple)
+![scikit--learn](https://img.shields.io/badge/scikit--learn-orange)
+![Jupyter](https://img.shields.io/badge/Jupyter-orange)
+![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-black)
+
 # Boston House Price Analysis
 
-Multivariable regression model predicting 1970s Boston house prices from 13 neighbourhood features.
+Which neighbourhood characteristics actually drive residential property values — and by how much? This analysis uses the Boston Housing Dataset (Harrison & Rubinfeld, 1978) to answer that question for 506 census tracts across 1970s Boston, building a multivariable linear regression model across 13 socio-economic and geographic features.
 
-This project investigates which socio-economic and geographic characteristics drive residential property values in Boston, Massachusetts. Using the canonical Boston Housing Dataset (Harrison & Rubinfeld, 1978), it answers questions such as: how much does each extra room add to a home's value? Does proximity to the Charles River carry a price premium? How do crime, pollution, and poverty levels depress prices? A multivariable linear regression model is trained on 13 features to produce price estimates for any given property configuration.
+The raw price data carries a positive skew (skewness 1.46) that biases the residuals. Applying a log transformation to the target reduces residual skew to 0.09 and raises the test-set r² from 0.67 to 0.74 — a meaningful improvement in out-of-sample accuracy. The final model identifies number of rooms (`RM`) as the strongest positive predictor, valuing each additional room at roughly $3,109, while pollution (`NOX`), poverty (`LSTAT`), and crime (`CRIM`) each depress prices.
 
-The dataset contains 506 observations collected in the 1970s, each representing a Boston census tract. After loading and cleaning the data (no missing values or duplicates), the analysis explores distributions and pairwise relationships, then splits the data 80/20 into training and test sets. A first regression model is evaluated using residual plots, revealing positive skew in the errors. A log transformation is applied to the target variable to reduce that skew, and a second model is trained — achieving meaningfully higher r² on both training and test data.
-
-No external APIs or credentials are required. All data is included in `data/boston.csv` and all analysis runs locally in Jupyter notebooks.
+The model produces a working valuation function: supply any combination of property characteristics and get a dollar estimate in return. An average Boston property across all 13 features is estimated at $20,703. An 8-room river-front property in a low-poverty area is estimated at $25,792.
 
 ---
 
 ## Table of Contents
 
-1. [Quick start](#1-quick-start)
-2. [Analysis flow](#2-analysis-flow)
-3. [Features](#3-features)
-4. [Dataset schema](#4-dataset-schema)
+1. [Quick Start](#1-quick-start)
+2. [Analysis Flow](#2-analysis-flow)
+3. [Key Findings](#3-key-findings)
+4. [Dataset Schema](#4-dataset-schema)
 5. [Architecture](#5-architecture)
-6. [Notebook reference](#6-notebook-reference)
-7. [Configuration reference](#7-configuration-reference)
-8. [Course context](#8-course-context)
+6. [Visualisations](#6-visualisations)
+7. [Operations Reference](#7-operations-reference)
+8. [Background](#8-background)
 9. [Dependencies](#9-dependencies)
+10. [Portfolio Integration](#10-portfolio-integration)
 
 ---
 
-## 1. Quick start
+## 1. Quick Start
 
 ```bash
 git clone https://github.com/xavier-oc-programming/boston-house-price-analysis.git
@@ -33,18 +42,17 @@ pip install -r requirements.txt
 jupyter notebook
 ```
 
-Open `practice/A_03_Multivariable_Regression_Complete.ipynb` to see the full analysis with outputs.  
-Open `practice/A_02_Multivariable_Regression_Start.ipynb` to work through the exercises yourself.
+Open `notebooks/analysis/A_03_Multivariable_Regression_Complete.ipynb` to run the full analysis with outputs.
 
 ---
 
-## 2. Analysis flow
+## 2. Analysis Flow
 
 ```
 pipeline
     │
     │  ── [Ingestion] ────────────────────────────────────────────────
-    ├── pd.read_csv('../data/boston.csv', index_col=0)  →  data (506 × 14)
+    ├── pd.read_csv('../../data/boston.csv', index_col=0)  →  data (506 × 14)
     │
     │  ── [Exploration] ──────────────────────────────────────────────
     ├── .shape / .info() / .describe()     →  structure and summary stats
@@ -65,11 +73,11 @@ pipeline
     │  ── [Modelling — v1] ───────────────────────────────────────────
     ├── train_test_split(test_size=0.2, random_state=10)
     ├── LinearRegression().fit(X_train, y_train)
-    ├── .score() on training set            →  r² ≈ 0.75
+    ├── .score() on training set            →  r² = 0.75
     ├── pd.DataFrame(regr.coef_)            →  coefficient table
     ├── scatter(y_train, predicted_vals)    →  actual vs. predicted
     ├── scatter(predicted_vals, residuals)  →  residuals vs. predicted
-    ├── sns.displot(residuals, kde=True)    →  residual distribution
+    ├── sns.displot(residuals, kde=True)    →  residual distribution (skew 1.46)
     │
     │  ── [Transformation] ───────────────────────────────────────────
     ├── data['PRICE'].skew()                →  confirm positive skew
@@ -78,9 +86,9 @@ pipeline
     │
     │  ── [Modelling — v2] ───────────────────────────────────────────
     ├── LinearRegression().fit(X_train, log_y_train)
-    ├── .score() on training set            →  r² ≈ 0.79
-    ├── residual plots (log model)          →  near-normal, less skew
-    ├── regr.score(X_test, y_test) × 2     →  compare test r²
+    ├── .score() on training set            →  r² = 0.79
+    ├── residual plots (log model)          →  skew drops to 0.09
+    ├── regr.score(X_test, y_test) × 2     →  test r²: 0.67 → 0.74
     │
     │  ── [Valuation] ────────────────────────────────────────────────
     ├── features.mean()                     →  average property baseline
@@ -90,19 +98,21 @@ pipeline
 
 ---
 
-## 3. Features
+## 3. Key Findings
 
-- Identifies the strongest positive predictor of house price: number of rooms (`RM`)
-- Quantifies the price premium for Charles River proximity (`CHAS`)
-- Shows that pollution (`NOX`), crime (`CRIM`), and poverty (`LSTAT`) all depress prices
-- Demonstrates that distance from employment centres (`DIS`) relates to lower pollution
-- Reveals right-skew in the raw price distribution and fixes it via log transformation
-- Achieves r² ≈ 0.74 on held-out test data (log model), versus ≈ 0.67 for the raw model
-- Produces a working valuation function: specify any property characteristics → get a dollar estimate
+- **Each additional room adds ~$3,109** to the estimated property value (raw model coefficient: 3.11)
+- **Log transformation reduces residual skew from 1.46 to 0.09**, bringing the error distribution close to normal
+- **Test-set r² improves from 0.67 to 0.74** after log-transforming the price target
+- **River proximity (CHAS) is a positive predictor** — log model coefficient: +0.08
+- **Pollution (NOX) is the strongest negative predictor** — log model coefficient: −0.70
+- **Average Boston property estimated at $20,703** using mean values across all 13 features
+- **8-room river-front property in a low-poverty area estimated at $25,792**
+- **Only 35 of 506 properties** in the dataset border the Charles River
+- **506 observations, no missing values, no duplicates** — dataset is analysis-ready as supplied
 
 ---
 
-## 4. Dataset schema
+## 4. Dataset Schema
 
 ### `data/boston.csv`
 
@@ -127,9 +137,9 @@ pipeline
 
 **Computed at runtime:**
 
-| Column   | Created in | Description |
-|----------|------------|-------------|
-| log PRICE | practice notebooks | `np.log(data['PRICE'])` — log-transformed target for model v2 |
+| Column    | Created in | Description |
+|-----------|------------|-------------|
+| log PRICE | analysis notebooks | `np.log(data['PRICE'])` — log-transformed target for model v2 |
 
 ---
 
@@ -138,62 +148,83 @@ pipeline
 ```
 boston-house-price-analysis/
 │
-├── theory/
-│   ├── 00__Overview.ipynb                         # Day goals, dataset schema, analysis plan, key methods
-│   └── 01__Solution_and_Learning_Points.ipynb     # Results, residual diagnosis, log-transform rationale
-│
-├── practice/
-│   ├── A_02_Multivariable_Regression_Start.ipynb  # Exercise template — blank cells with challenge prompts
-│   └── A_03_Multivariable_Regression_Complete.ipynb # Full solution with outputs — start here to read
+├── notebooks/
+│   ├── analysis/
+│   │   ├── A_02_Multivariable_Regression_Start.ipynb
+│   │   └── A_03_Multivariable_Regression_Complete.ipynb
+│   └── concepts/
+│       ├── 00__Overview.ipynb
+│       └── 01__Solution_and_Learning_Points.ipynb
 │
 ├── data/
-│   └── boston.csv                                 # Boston Housing Dataset — 506 rows, 14 columns
+│   └── boston.csv
+│
+├── plots/
+│   └── [charts saved at 150 dpi]
+│
+├── notebook_web_render/
+│   └── index.html
 │
 ├── docs/
-│   └── COURSE_NOTES.md                            # Course brief, dataset description, key results
+│   └── COURSE_NOTES.md
 │
-├── requirements.txt                               # Pinned dependencies
+├── .github/
+│   └── workflows/
+│       └── publish_notebook.yml
+│
+├── requirements.txt
 ├── .gitignore
 └── README.md
 ```
 
 ---
 
-## 6. Notebook reference
+## 6. Visualisations
 
-### theory/
+All charts are saved to `plots/` at 150 dpi.
 
-| Notebook | Key methods covered | Question answered |
-|----------|--------------------|--------------------|
-| 00__Overview.ipynb | `pd.read_csv`, `describe`, `displot`, `jointplot`, `pairplot`, `train_test_split`, `LinearRegression`, `np.log`, `np.exp` | What is the project, what will be built, and how does the analysis flow? |
-| 01__Solution_and_Learning_Points.ipynb | Coefficient interpretation, residual diagnostics, log transformation rationale, valuation example | What did the analysis find and what are the key takeaways? |
-
-### practice/
-
-| Notebook | Key methods covered | Question answered |
-|----------|--------------------|--------------------|
-| A_02_Multivariable_Regression_Start.ipynb | All of the above | Exercise template — prompts only, student fills in solutions |
-| A_03_Multivariable_Regression_Complete.ipynb | `read_csv`, `describe`, `isna`, `duplicated`, `displot`, `jointplot`, `pairplot`, `px.bar`, `train_test_split`, `LinearRegression.fit`, `.score`, `.coef_`, `.intercept_`, residual scatter, `np.log`, valuation with `.predict` + `np.exp` | Which neighbourhood features drive Boston house prices? How well can a linear model predict them? |
+| File | Description |
+|------|-------------|
+| `price_distribution.png` | Distribution of median home values with KDE |
+| `distance_distribution.png` | Distribution of weighted distance to employment centres |
+| `rooms_distribution.png` | Distribution of average rooms per dwelling |
+| `highway_access_histogram.png` | Histogram of highway accessibility index (RAD) |
+| `river_access_bar.png` | Count of properties bordering the Charles River |
+| `pairplot.png` | Pairwise scatter plots across all 14 columns |
+| `jointplot_dis_nox.png` | Distance to employment vs. nitric oxide pollution |
+| `jointplot_indus_nox.png` | Industrial land proportion vs. pollution |
+| `jointplot_lstat_rm.png` | Poverty level vs. number of rooms |
+| `jointplot_lstat_price.png` | Poverty level vs. home price |
+| `jointplot_rm_price.png` | Rooms vs. home price |
+| `actual_vs_predicted.png` | Raw model: actual vs. predicted prices |
+| `residuals_vs_predicted.png` | Raw model: residuals vs. predicted prices |
+| `residual_distribution.png` | Raw model residual distribution (skew 1.46) |
+| `price_distribution_normal.png` | Raw price distribution showing positive skew |
+| `log_price_distribution.png` | Log-transformed price distribution (skew near zero) |
+| `price_vs_log_price.png` | Original prices vs. log prices — shows compression effect |
+| `log_actual_vs_predicted.png` | Log model: actual vs. predicted log prices |
+| `log_residuals_vs_predicted.png` | Log model: residuals vs. predicted (skew 0.09) |
+| `log_residual_distribution.png` | Log model residual distribution |
 
 ---
 
-## 7. Configuration reference
+## 7. Operations Reference
 
 | Value | Location | Description |
 |-------|----------|-------------|
-| `'../data/boston.csv'` | practice notebooks, load cell | Relative path from `practice/` to the dataset |
+| `'../../data/boston.csv'` | analysis notebooks, load cell | Relative path from `notebooks/analysis/` to the dataset |
 | `index_col=0` | `pd.read_csv()` | First CSV column is the row index, not a feature |
-| `pd.options.display.float_format = '{:,.2f}'.format` | practice notebooks, setup cell | Display floats with 2 decimal places throughout |
+| `pd.options.display.float_format = '{:,.2f}'.format` | analysis notebooks, setup cell | Display floats with 2 decimal places throughout |
 | `test_size=0.2` | `train_test_split()` | 80/20 train/test split |
 | `random_state=10` | `train_test_split()` | Fixed seed for reproducible split |
 | `q=0.75` / `q=0.25` | `data.NOX.quantile()` / `data.LSTAT.quantile()` | Valuation scenario: high pollution, low poverty quartiles |
 
 ---
 
-## 8. Course context
+## 8. Background
 
 100 Days of Code: The Complete Python Pro Bootcamp — Day 81: Multivariable Regression & Valuation Model.  
-See [docs/COURSE_NOTES.md](docs/COURSE_NOTES.md) for the full exercise brief and key results.
+See [docs/COURSE_NOTES.md](docs/COURSE_NOTES.md) for the full brief and key results.
 
 ---
 
@@ -201,10 +232,28 @@ See [docs/COURSE_NOTES.md](docs/COURSE_NOTES.md) for the full exercise brief and
 
 | Module | Used in | Purpose |
 |--------|---------|---------|
-| pandas | practice notebooks | Data loading, cleaning, descriptive statistics, DataFrame display |
-| numpy | practice notebooks | Log transformation (`np.log`), exponentiation (`np.exp`), array ops |
-| matplotlib | practice notebooks | Histogram, residual scatter, log-price scatter plots |
-| seaborn | practice notebooks | Distribution plots (`displot`), joint plots, pair plot |
-| plotly | practice notebooks | Interactive bar chart for Charles River access counts |
-| scikit-learn | practice notebooks | `LinearRegression`, `train_test_split` |
+| pandas | analysis notebooks | Data loading, cleaning, descriptive statistics, DataFrame display |
+| numpy | analysis notebooks | Log transformation (`np.log`), exponentiation (`np.exp`), array ops |
+| matplotlib | analysis notebooks | Histogram, residual scatter, log-price scatter plots |
+| seaborn | analysis notebooks | Distribution plots (`displot`), joint plots, pair plot |
+| plotly | analysis notebooks | Interactive bar chart for Charles River access counts |
+| scikit-learn | analysis notebooks | `LinearRegression`, `train_test_split` |
 | notebook | local dev | Jupyter notebook server |
+
+---
+
+## 10. Portfolio Integration
+
+Rendered notebook (outputs and charts only, no code):  
+https://xavier-oc-programming.github.io/boston-house-price-analysis/notebook_web_render/
+
+Regenerated automatically via GitHub Actions on every commit to `notebooks/analysis/A_03_Multivariable_Regression_Complete.ipynb`.
+
+To regenerate manually:
+
+```bash
+jupyter nbconvert --to html --no-input \
+  --output index.html \
+  notebooks/analysis/A_03_Multivariable_Regression_Complete.ipynb
+mv index.html notebook_web_render/index.html
+```

@@ -1,11 +1,14 @@
+.env
+__pycache__/
 **/__pycache__/
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+*.pyc
+*.py[cod]
 .DS_Store
 .idea/
 .vscode/
-*.py[cod]
-.env
 *.log
-.ipynb_checkpoints/
 old_files/
 venv/
 .venv/

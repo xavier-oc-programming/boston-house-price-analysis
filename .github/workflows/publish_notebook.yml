@@ -1,0 +1,46 @@
+name: Publish Notebook
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'notebooks/analysis/A_03_Multivariable_Regression_Complete.ipynb'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install jupyter nbconvert
+
+      - name: Convert notebook to HTML
+        run: |
+          jupyter nbconvert --to html \
+            --no-input \
+            --output index.html \
+            notebooks/analysis/A_03_Multivariable_Regression_Complete.ipynb
+
+      - name: Move to notebook_web_render directory
+        run: |
+          mkdir -p notebook_web_render
+          mv index.html notebook_web_render/index.html
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: notebook_web_render
+          destination_dir: notebook_web_render
+          keep_files: true
