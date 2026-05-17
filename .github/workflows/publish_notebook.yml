@@ -28,6 +28,7 @@ jobs:
         run: |
           jupyter nbconvert --to html \
             --no-input \
+            --output-dir . \
             --output index.html \
             notebooks/analysis/A_03_Multivariable_Regression_Complete.ipynb
 
