@@ -13,3 +13,4 @@ old_files/
 venv/
 .venv/
 data/seed.*
+deploy.zip
