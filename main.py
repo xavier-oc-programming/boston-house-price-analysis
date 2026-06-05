@@ -1,12 +1,11 @@
 import json
 import os
+from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
-from starlette.requests import Request
 
 import predictor
 
@@ -16,7 +15,7 @@ app = FastAPI(
     version="1.0.0",
 )
 
-templates = Jinja2Templates(directory="templates")
+_INDEX_HTML = Path("templates/index.html").read_text()
 
 MODEL_LOADED = False
 MODEL_R2 = 0.74
@@ -99,8 +98,8 @@ class HealthResponse(BaseModel):
 
 
 @app.get("/", response_class=HTMLResponse)
-def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+def index():
+    return HTMLResponse(_INDEX_HTML)
 
 
 @app.get("/health", response_model=HealthResponse)
