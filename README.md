@@ -89,16 +89,17 @@ jupyter notebook
 The model is split across three files with a clear separation of concerns:
 
 ```
-train.py          Runs once. Fits StandardScaler + LinearRegression on
-                  log(PRICE),saves scaler.pkl, model.pkl, and three JSON files to models/.
+train.py         Runs once. Fits StandardScaler + LinearRegression on log(PRICE),
+                 saves scaler.pkl, model.pkl, and three JSON files to models/.
 
-predictor.py      Loaded at API startup. Lazy-loads the pkl files on first call
-                  arranges features in the correct order, scales the input, predicts log price,
-                  then returns np.exp(prediction) × 1000 to convert back to dollars.
+predictor.py     Loaded at API startup. Lazy-loads the pkl files on first call,
+                 arranges features in the correct order, scales the input, predicts
+                 log price, then returns np.exp(prediction) × 1000 to get dollars.
 
-main.py           FastAPI layer. Validates the incoming request with Pydantic,
-                  calls predictor predict_price(), formats the response. Also serves
-                  the slider UI via Jinja2 template.
+main.py          FastAPI layer. Validates the incoming request with Pydantic,
+                 calls predictor.predict_price(), formats the response. Serves
+                 the slider UI by reading templates/index.html directly as HTML
+                 (no template engine — the file has no dynamic variables).
 ```
 
 The `models/` directory is committed to the repo so the API and CI can load the model without needing to retrain. To regenerate (e.g. after changing the training data), run `python train.py` and commit the updated files.
@@ -247,10 +248,13 @@ az webapp create --name boston-house-price-xoc --resource-group boston-house-pri
 az webapp config set --name boston-house-price-xoc --resource-group boston-house-price-rg --startup-file "gunicorn main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --timeout 600"
 az webapp config appsettings set --name boston-house-price-xoc --resource-group boston-house-price-rg --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
 
-# 4. Zip and deploy
-zip -rq deploy.zip . -x "*.git*" -x "venv/*" -x "__pycache__/*" -x "*.ipynb_checkpoints*" -x ".DS_Store" -x "deploy.zip" -x ".pytest_cache/*"
-az webapp deploy --name boston-house-price-xoc --resource-group boston-house-price-rg --src-path deploy.zip --type zip
-# add --build-remote true if requirements.txt has changed
+# 4. Zip only the files the app needs, then deploy via Kudu REST endpoint
+zip -rq deploy.zip main.py predictor.py requirements.txt startup.txt models/ templates/
+TOKEN=$(az account get-access-token --query accessToken -o tsv)
+curl -X POST "https://boston-house-price-xoc.scm.azurewebsites.net/api/zipdeploy" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/zip" \
+  --data-binary @deploy.zip
 ```
 
 ---
@@ -277,19 +281,31 @@ Runs on every push to `main` and on every pull request targeting `main`. Two job
 
 Only runs on push to `main` (not on pull requests) and only if the `test` job passed.
 
-Uses `azure/login@v2` to authenticate via a service principal stored as the `AZURE_CREDENTIALS` GitHub secret (JSON with `clientId`, `clientSecret`, `subscriptionId`, `tenantId`). After login, it runs `az webapp deploy --type zip` — the same CLI command used for manual deploys, but executed by the runner.
+Authenticates with Azure using `azure/login@v2` and the `AZURE_CREDENTIALS` GitHub secret, then zips only the files Azure needs (`main.py`, `predictor.py`, `requirements.txt`, `startup.txt`, `models/`, `templates/`) — 12 KB — and POSTs it directly to Kudu's zip deploy REST endpoint via `curl`:
 
-The publish profile approach (`azure/webapps-deploy`) was tried first but is unreliable on Linux App Service F1 — the CLI is more stable for this configuration.
-
-This means every merge to `main` automatically ships to [boston-house-price-xoc.azurewebsites.net](https://boston-house-price-xoc.azurewebsites.net) — no manual zip deploy needed.
-
-**To set up the secret** (one-time, already done):
-```bash
-az ad sp create-for-rbac --name "boston-house-price-gh-actions" \
-  --role contributor \
-  --scopes /subscriptions/<sub-id>/resourceGroups/boston-house-price-rg \
-  --sdk-auth | gh secret set AZURE_CREDENTIALS --repo xavier-oc-programming/boston-house-price-analysis
 ```
+POST https://<app>.scm.azurewebsites.net/api/zipdeploy
+Authorization: Bearer <token>
+```
+
+This is fire-and-forget — `curl` returns as soon as the upload is received. Azure processes the deployment in the background. Using `curl` directly avoids the Azure CLI's polling behaviour, which hangs indefinitely on the F1 free tier.
+
+**About `AZURE_CREDENTIALS`:**
+This is a GitHub secret containing a service principal JSON (clientId, clientSecret, subscriptionId, tenantId). It is **private to this repo** — forks do not inherit it, collaborators cannot read it, only GitHub Actions runners can use it during a workflow run. The service principal has contributor access scoped to the `boston-house-price-rg` resource group only.
+
+**Setting it up for your own fork:**
+
+1. Create an Azure resource group and deploy the app manually (see [Deployment](#deployment))
+2. Create a service principal scoped to your resource group:
+```bash
+az ad sp create-for-rbac \
+  --name "your-app-gh-actions" \
+  --role contributor \
+  --scopes /subscriptions/<your-sub-id>/resourceGroups/<your-rg> \
+  --sdk-auth
+```
+3. Copy the JSON output and add it as a GitHub secret named `AZURE_CREDENTIALS` in your fork's Settings → Secrets → Actions
+4. Update the app name and resource group in `ci.yml` to match yours
 
 ---
 
