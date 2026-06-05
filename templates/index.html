@@ -183,15 +183,27 @@
       transition: all 0.25s ease;
       min-height: 52px;
     }
-    .price-card .confidence {
+    .price-context {
       font-size: 0.78rem;
-      color: #64748b;
-      margin-top: 12px;
+      color: #94a3b8;
+      margin-top: 6px;
     }
-    .price-card .data-note {
-      font-size: 0.72rem;
+    .price-warning {
+      display: inline-block;
+      margin-top: 10px;
+      background: #f59e0b22;
+      border: 1px solid #f59e0b66;
+      color: #fbbf24;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: 6px;
+      letter-spacing: 0.3px;
+    }
+    .price-card .confidence {
+      font-size: 0.75rem;
       color: #475569;
-      margin-top: 4px;
+      margin-top: 12px;
     }
     .loading-dot {
       display: inline-block;
@@ -272,8 +284,9 @@
     <div class="price-card">
       <div class="price-label">Estimated Value</div>
       <div class="price-display" id="price-display">—</div>
+      <div class="price-context">Median home value · 1970s USD</div>
+      <div class="price-warning">⚠ 1970s prices — not current market values</div>
       <div class="confidence">Model confidence: r² = 0.74 on test set</div>
-      <div class="data-note">Based on 1970 Boston census data</div>
     </div>
 
     <div class="impact-card">
