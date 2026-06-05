@@ -184,12 +184,8 @@ pytest tests/ -v
 │   └── test_api.py      6 pytest tests — health, predict, validation, stats
 │
 ├── .github/workflows/
-│   ├── ci.yml                 Triggers on push/PR to main. Installs requirements,
-│   │                          runs pytest tests/ -v. Loads models/ from the repo
-│   │                          so no retraining step is needed in CI.
-│   └── publish_notebook.yml   Triggers when A_03 notebook is committed. Runs
-│                              nbconvert --no-input to strip code, saves the output
-│                              HTML to notebook_web_render/, pushes to gh-pages.
+│   ├── ci.yml                 See "CI workflows" section below.
+│   └── publish_notebook.yml   See "CI workflows" section below.
 │
 ├── notebooks/
 │   └── analysis/
@@ -231,6 +227,42 @@ az webapp config appsettings set --name boston-house-price-xoc --resource-group 
 zip -r deploy.zip . -x "*.git*" -x "venv/*" -x "__pycache__/*" -x "*.ipynb_checkpoints*"
 az webapp deployment source config-zip --name boston-house-price-xoc --resource-group boston-house-price-rg --src deploy.zip
 ```
+
+---
+
+## CI workflows
+
+There are two independent workflows in `.github/workflows/`. They never conflict — each triggers on a different condition.
+
+### `ci.yml` — API tests
+
+Runs on every push to `main` and on every pull request targeting `main`.
+
+**Steps:**
+1. Check out the repo
+2. Set up Python 3.11
+3. `pip install -r requirements.txt`
+4. `pytest tests/ -v` — runs the 6 API tests in `tests/test_api.py`
+
+**Why no retrain step?** The `models/` directory (`scaler.pkl`, `model.pkl`, and the JSON files) is committed directly to the repo. When the CI runner checks out the code, the pkl files are already there. `predictor.py` loads them at startup, so the tests can hit `POST /predict` and get real predictions without needing to run `train.py` first.
+
+**What it tests:** health endpoint, predict endpoint (average property, expected price range), missing-feature validation (expects 422), feature stats, model info, feature descriptions.
+
+---
+
+### `publish_notebook.yml` — rendered notebook
+
+Triggers only when `notebooks/analysis/A_03_Multivariable_Regression_Complete.ipynb` is changed in a push to `main`. Does not run on every commit — only when the notebook file itself is modified.
+
+**Steps:**
+1. Check out the repo
+2. Set up Python 3.11
+3. `pip install jupyter nbconvert`
+4. Run `jupyter nbconvert --to html --no-input` — converts the notebook to HTML, stripping all code cells so only outputs and markdown are visible
+5. Move the output to `notebook_web_render/index.html`
+6. Commit and push the updated HTML back to `main` with a bot commit
+
+**Why commit back to main instead of gh-pages?** The GitHub Pages source for this repo is set to serve `notebook_web_render/` from `main` directly, so the bot pushes the rendered HTML there rather than maintaining a separate branch.
 
 ---
 
