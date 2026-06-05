@@ -250,7 +250,21 @@ Runs on every push to `main` and on every pull request targeting `main`. Two job
 
 **Job 2 — `deploy`:**
 
-Only runs on push to `main` (not on pull requests) and only if the `test` job passed. Uses `azure/webapps-deploy@v3` with the publish profile stored in the `AZURE_WEBAPP_PUBLISH_PROFILE` GitHub secret. This means every merge to `main` automatically ships to [boston-house-price-xoc.azurewebsites.net](https://boston-house-price-xoc.azurewebsites.net) — no manual zip deploy needed.
+Only runs on push to `main` (not on pull requests) and only if the `test` job passed.
+
+Uses `azure/login@v2` to authenticate via a service principal stored as the `AZURE_CREDENTIALS` GitHub secret (JSON with `clientId`, `clientSecret`, `subscriptionId`, `tenantId`). After login, it runs `az webapp deploy --type zip` — the same CLI command used for manual deploys, but executed by the runner.
+
+The publish profile approach (`azure/webapps-deploy`) was tried first but is unreliable on Linux App Service F1 — the CLI is more stable for this configuration.
+
+This means every merge to `main` automatically ships to [boston-house-price-xoc.azurewebsites.net](https://boston-house-price-xoc.azurewebsites.net) — no manual zip deploy needed.
+
+**To set up the secret** (one-time, already done):
+```bash
+az ad sp create-for-rbac --name "boston-house-price-gh-actions" \
+  --role contributor \
+  --scopes /subscriptions/<sub-id>/resourceGroups/boston-house-price-rg \
+  --sdk-auth | gh secret set AZURE_CREDENTIALS --repo xavier-oc-programming/boston-house-price-analysis
+```
 
 ---
 
