@@ -234,11 +234,11 @@ az webapp deployment source config-zip --name boston-house-price-xoc --resource-
 
 There are two independent workflows in `.github/workflows/`. They never conflict — each triggers on a different condition.
 
-### `ci.yml` — API tests
+### `ci.yml` — API tests + Azure deploy
 
-Runs on every push to `main` and on every pull request targeting `main`.
+Runs on every push to `main` and on every pull request targeting `main`. Two jobs run in sequence:
 
-**Steps:**
+**Job 1 — `test`:**
 1. Check out the repo
 2. Set up Python 3.11
 3. `pip install -r requirements.txt`
@@ -247,6 +247,10 @@ Runs on every push to `main` and on every pull request targeting `main`.
 **Why no retrain step?** The `models/` directory (`scaler.pkl`, `model.pkl`, and the JSON files) is committed directly to the repo. When the CI runner checks out the code, the pkl files are already there. `predictor.py` loads them at startup, so the tests can hit `POST /predict` and get real predictions without needing to run `train.py` first.
 
 **What it tests:** health endpoint, predict endpoint (average property, expected price range), missing-feature validation (expects 422), feature stats, model info, feature descriptions.
+
+**Job 2 — `deploy`:**
+
+Only runs on push to `main` (not on pull requests) and only if the `test` job passed. Uses `azure/webapps-deploy@v3` with the publish profile stored in the `AZURE_WEBAPP_PUBLISH_PROFILE` GitHub secret. This means every merge to `main` automatically ships to [boston-house-price-xoc.azurewebsites.net](https://boston-house-price-xoc.azurewebsites.net) — no manual zip deploy needed.
 
 ---
 
