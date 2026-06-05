@@ -11,7 +11,7 @@ demo_url: https://boston-house-price-xoc.azurewebsites.net
 notebook_url: https://xavier-oc-programming.github.io/boston-house-price-analysis/notebook_web_render/
 
 short_description: |
-  Property valuation tool for 1970s Boston census tracts. Multivariable linear regression on 13 socio-economic features with log-transformed target — test r² improves from 0.67 to 0.74 after transformation. Live interactive predictor deployed on Azure App Service; full analysis available as a rendered notebook on GitHub Pages.
+  1970s Boston house price predictor. Linear regression on 13 features with log-transformed target (test r²=0.74). Live slider UI on Azure; full analysis in rendered notebook.
 
 full_description: |
   This project works through 506 Boston census tracts from the Harrison & Rubinfeld (1978) dataset, fitting a multivariable linear regression across 13 socio-economic and geographic features to explain median residential property values. The pipeline covers data cleaning, exploratory visualisation (distributions, pair plots, joint plots), an 80/20 train/test split, residual diagnostics, and a working valuation function.
