@@ -30,7 +30,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: azure/webapps-deploy@v3
+      - uses: azure/login@v2
         with:
-          app-name: boston-house-price-xoc
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Zip and deploy
+        run: |
+          zip -rq deploy.zip . \
+            --exclude "*.git*" \
+            --exclude "venv/*" \
+            --exclude "__pycache__/*" \
+            --exclude "*.ipynb_checkpoints*" \
+            --exclude ".DS_Store" \
+            --exclude "deploy.zip" \
+            --exclude ".pytest_cache/*"
+          az webapp deploy \
+            --name boston-house-price-xoc \
+            --resource-group boston-house-price-rg \
+            --src-path deploy.zip \
+            --type zip
