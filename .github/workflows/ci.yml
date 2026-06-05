@@ -47,5 +47,4 @@ jobs:
             --name boston-house-price-xoc \
             --resource-group boston-house-price-rg \
             --src-path deploy.zip \
-            --type zip \
-            --build-remote true
+            --type zip

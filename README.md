@@ -224,8 +224,9 @@ az webapp config set --name boston-house-price-xoc --resource-group boston-house
 az webapp config appsettings set --name boston-house-price-xoc --resource-group boston-house-price-rg --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
 
 # 4. Zip and deploy
-zip -r deploy.zip . -x "*.git*" -x "venv/*" -x "__pycache__/*" -x "*.ipynb_checkpoints*"
-az webapp deployment source config-zip --name boston-house-price-xoc --resource-group boston-house-price-rg --src deploy.zip
+zip -rq deploy.zip . -x "*.git*" -x "venv/*" -x "__pycache__/*" -x "*.ipynb_checkpoints*" -x ".DS_Store" -x "deploy.zip" -x ".pytest_cache/*"
+az webapp deploy --name boston-house-price-xoc --resource-group boston-house-price-rg --src-path deploy.zip --type zip
+# add --build-remote true if requirements.txt has changed
 ```
 
 ---
