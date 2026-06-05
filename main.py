@@ -15,7 +15,7 @@ app = FastAPI(
     version="1.0.0",
 )
 
-_INDEX_HTML = Path("templates/index.html").read_text()
+_INDEX_PATH = Path("templates/index.html")
 
 MODEL_LOADED = False
 MODEL_R2 = 0.74
@@ -99,7 +99,7 @@ class HealthResponse(BaseModel):
 
 @app.get("/", response_class=HTMLResponse)
 def index():
-    return HTMLResponse(_INDEX_HTML)
+    return HTMLResponse(_INDEX_PATH.read_text())
 
 
 @app.get("/health", response_model=HealthResponse)
