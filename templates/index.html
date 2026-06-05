@@ -351,7 +351,7 @@
               <input type="checkbox" id="toggle-${feat}" onchange="onToggle('${feat}', this.checked)" />
               <span class="toggle-slider"></span>
             </label>
-            <span class="toggle-label" id="toggle-label-${feat}">No (0 — does not)</span>
+            <span class="toggle-label" id="toggle-label-${feat}">Does not border river</span>
           </div>
           <div class="feature-desc">${desc.description}</div>
         `;
@@ -387,7 +387,7 @@
 
   function onToggle(feat, checked) {
     currentValues[feat] = checked ? 1 : 0;
-    document.getElementById(`toggle-label-${feat}`).textContent = checked ? 'Yes (1 — borders river)' : 'No (0 — does not)';
+    document.getElementById(`toggle-label-${feat}`).textContent = checked ? 'Borders the Charles River' : 'Does not border river';
     schedulePredict();
   }
 
@@ -425,7 +425,7 @@
       } else if (toggle) {
         toggle.checked = val >= 0.5;
         const label = document.getElementById(`toggle-label-${feat}`);
-        if (label) label.textContent = val >= 0.5 ? 'Yes (1 — borders river)' : 'No (0 — does not)';
+        if (label) label.textContent = val >= 0.5 ? 'Borders the Charles River' : 'Does not border river';
       }
     }
 
