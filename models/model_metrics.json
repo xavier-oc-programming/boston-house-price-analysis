@@ -1,0 +1,24 @@
+{
+  "train_r2": 0.793,
+  "test_r2_log": 0.7447,
+  "test_r2_original": 0.7302,
+  "n_train": 404,
+  "n_test": 102,
+  "features": [
+    "CRIM",
+    "ZN",
+    "INDUS",
+    "CHAS",
+    "NOX",
+    "RM",
+    "AGE",
+    "DIS",
+    "RAD",
+    "TAX",
+    "PTRATIO",
+    "B",
+    "LSTAT"
+  ],
+  "target_transform": "log",
+  "note": "Log-transformed target. Predictions are exponentiated before returning dollar values."
+}

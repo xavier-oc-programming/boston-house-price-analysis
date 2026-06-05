@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Boston Property Valuation</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8f9fb;
+      color: #1A2332;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1A2332;
+      color: #fff;
+      padding: 24px 32px;
+      text-align: center;
+    }
+    header h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.5px; }
+    header p.subtitle { font-size: 0.85rem; color: #94a3b8; margin-top: 4px; }
+    header p.hint { font-size: 0.78rem; color: #64748b; margin-top: 2px; }
+
+    .container {
+      max-width: 1200px;
+      margin: 32px auto;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 24px;
+    }
+
+    @media (max-width: 860px) {
+      .container { grid-template-columns: 1fr; }
+      .right-col { order: -1; }
+    }
+
+    /* Preset buttons */
+    .presets {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .preset-btn {
+      padding: 8px 16px;
+      border: 2px solid #1A2332;
+      background: #fff;
+      color: #1A2332;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 600;
+      transition: background 0.15s, color 0.15s;
+    }
+    .preset-btn:hover { background: #1A2332; color: #fff; }
+
+    /* Sliders panel */
+    .sliders-panel {
+      background: #fff;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+    .sliders-panel h2 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #1A2332;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 10px;
+    }
+
+    .feature-row {
+      margin-bottom: 18px;
+    }
+    .feature-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 4px;
+    }
+    .feature-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #1A2332;
+    }
+    .feature-value {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #1A2332;
+      min-width: 48px;
+      text-align: right;
+    }
+    .feature-desc {
+      font-size: 0.72rem;
+      color: #64748b;
+      margin-top: 3px;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 5px;
+      background: #e2e8f0;
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      background: #1A2332;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    input[type="range"]:hover::-webkit-slider-thumb { background: #10B981; }
+
+    /* Toggle switch for CHAS */
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 6px;
+    }
+    .toggle {
+      position: relative;
+      width: 44px;
+      height: 24px;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: #cbd5e1;
+      border-radius: 24px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 18px; height: 18px;
+      left: 3px; top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .toggle input:checked + .toggle-slider { background: #10B981; }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+    .toggle-label { font-size: 0.82rem; color: #475569; }
+
+    /* Right column */
+    .right-col { display: flex; flex-direction: column; gap: 20px; }
+
+    /* Price card */
+    .price-card {
+      background: #1A2332;
+      border-radius: 12px;
+      padding: 28px 24px;
+      color: #fff;
+      text-align: center;
+      box-shadow: 0 4px 16px rgba(26,35,50,0.15);
+    }
+    .price-card .price-label {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .price-display {
+      font-size: 2.6rem;
+      font-weight: 800;
+      color: #10B981;
+      letter-spacing: -1px;
+      transition: all 0.25s ease;
+      min-height: 52px;
+    }
+    .price-card .confidence {
+      font-size: 0.78rem;
+      color: #64748b;
+      margin-top: 12px;
+    }
+    .price-card .data-note {
+      font-size: 0.72rem;
+      color: #475569;
+      margin-top: 4px;
+    }
+    .loading-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      background: #10B981;
+      border-radius: 50%;
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* Feature impact card */
+    .impact-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+    .impact-card h3 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #1A2332;
+      margin-bottom: 14px;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 8px;
+    }
+    .impact-section-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 8px;
+      margin-top: 12px;
+    }
+    .impact-section-label.up { color: #10B981; }
+    .impact-section-label.down { color: #ef4444; }
+    .impact-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      margin: 3px 3px 3px 0;
+    }
+    .impact-tag.up { background: #d1fae5; color: #065f46; }
+    .impact-tag.down { background: #fee2e2; color: #991b1b; }
+    #impact-container { min-height: 120px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Boston Property Valuation</h1>
+  <p class="subtitle">1970s Boston &nbsp;·&nbsp; Linear Regression &nbsp;·&nbsp; Test r² = 0.74</p>
+  <p class="hint">Adjust property characteristics to estimate value</p>
+</header>
+
+<div class="container">
+  <!-- LEFT: sliders -->
+  <div class="left-col">
+    <div class="presets">
+      <button class="preset-btn" onclick="applyPreset('average')">Average property</button>
+      <button class="preset-btn" onclick="applyPreset('premium')">Premium property</button>
+      <button class="preset-btn" onclick="applyPreset('budget')">Budget property</button>
+    </div>
+    <div class="sliders-panel">
+      <h2>Property Characteristics</h2>
+      <div id="sliders-container">Loading features…</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: price + impact -->
+  <div class="right-col">
+    <div class="price-card">
+      <div class="price-label">Estimated Value</div>
+      <div class="price-display" id="price-display">—</div>
+      <div class="confidence">Model confidence: r² = 0.74 on test set</div>
+      <div class="data-note">Based on 1970 Boston census data</div>
+    </div>
+
+    <div class="impact-card">
+      <h3>Feature Impact</h3>
+      <div id="impact-container">
+        <div style="font-size:0.78rem;color:#94a3b8;">Loading model…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let featureStats = {};
+  let featureDescriptions = {};
+  let currentValues = {};
+  let modelCoefficients = {};
+  let debounceTimer = null;
+
+  // Coefficients fetched from model-info — used for feature impact display
+  // These are placeholder signs; actual coefficients come from /api/model-info
+  // after the first successful prediction we use a simpler heuristic.
+  const KNOWN_SIGNS = {
+    RM: 1, CHAS: 1, B: 1, ZN: 1, DIS: 1,
+    NOX: -1, LSTAT: -1, CRIM: -1, PTRATIO: -1, INDUS: -1, AGE: -1, RAD: -1, TAX: -1
+  };
+
+  async function init() {
+    try {
+      const [statsRes, descRes] = await Promise.all([
+        fetch('/api/feature-stats'),
+        fetch('/api/feature-descriptions')
+      ]);
+      featureStats = await statsRes.json();
+      featureDescriptions = await descRes.json();
+      buildSliders();
+      applyPreset('average');
+    } catch (e) {
+      document.getElementById('sliders-container').textContent = 'Failed to load features.';
+    }
+  }
+
+  function buildSliders() {
+    const container = document.getElementById('sliders-container');
+    container.innerHTML = '';
+
+    for (const feat of Object.keys(featureStats)) {
+      const stats = featureStats[feat];
+      const desc = featureDescriptions[feat] || { label: feat, description: '' };
+      const isBinary = desc.type === 'binary';
+
+      const row = document.createElement('div');
+      row.className = 'feature-row';
+      row.dataset.feature = feat;
+
+      if (isBinary) {
+        row.innerHTML = `
+          <div class="feature-header">
+            <span class="feature-label">${desc.label}</span>
+          </div>
+          <div class="toggle-wrap">
+            <label class="toggle">
+              <input type="checkbox" id="toggle-${feat}" onchange="onToggle('${feat}', this.checked)" />
+              <span class="toggle-slider"></span>
+            </label>
+            <span class="toggle-label" id="toggle-label-${feat}">No</span>
+          </div>
+          <div class="feature-desc">${desc.description}</div>
+        `;
+      } else {
+        const range = stats.max - stats.min;
+        const step = range > 100 ? 1 : range > 10 ? 0.1 : 0.01;
+        row.innerHTML = `
+          <div class="feature-header">
+            <span class="feature-label">${desc.label}</span>
+            <span class="feature-value" id="val-${feat}">${stats.mean.toFixed(2)}</span>
+          </div>
+          <input type="range"
+            id="slider-${feat}"
+            min="${stats.min}" max="${stats.max}" step="${step}"
+            value="${stats.mean}"
+            oninput="onSlider('${feat}', this.value)"
+          />
+          <div class="feature-desc">${desc.description}</div>
+        `;
+      }
+
+      container.appendChild(row);
+      currentValues[feat] = isBinary ? 0 : stats.mean;
+    }
+  }
+
+  function onSlider(feat, val) {
+    const v = parseFloat(val);
+    currentValues[feat] = v;
+    document.getElementById(`val-${feat}`).textContent = v.toFixed(2);
+    schedulePredict();
+  }
+
+  function onToggle(feat, checked) {
+    currentValues[feat] = checked ? 1 : 0;
+    document.getElementById(`toggle-label-${feat}`).textContent = checked ? 'Yes' : 'No';
+    schedulePredict();
+  }
+
+  function applyPreset(name) {
+    const means = {};
+    for (const feat of Object.keys(featureStats)) {
+      means[feat] = featureStats[feat].mean;
+    }
+
+    let values = { ...means };
+
+    if (name === 'premium') {
+      values.RM = 8;
+      values.CHAS = 1;
+      values.LSTAT = 5;
+      values.NOX = 0.4;
+      values.CRIM = 0.1;
+    } else if (name === 'budget') {
+      values.LSTAT = 25;
+      values.CRIM = 15;
+      values.NOX = 0.7;
+      values.RM = 5;
+      values.CHAS = 0;
+    }
+
+    for (const [feat, val] of Object.entries(values)) {
+      currentValues[feat] = val;
+      const slider = document.getElementById(`slider-${feat}`);
+      const toggle = document.getElementById(`toggle-${feat}`);
+      if (slider) {
+        const clamped = Math.min(Math.max(val, parseFloat(slider.min)), parseFloat(slider.max));
+        slider.value = clamped;
+        document.getElementById(`val-${feat}`).textContent = clamped.toFixed(2);
+        currentValues[feat] = clamped;
+      } else if (toggle) {
+        toggle.checked = val >= 0.5;
+        const label = document.getElementById(`toggle-label-${feat}`);
+        if (label) label.textContent = val >= 0.5 ? 'Yes' : 'No';
+      }
+    }
+
+    schedulePredict();
+  }
+
+  function schedulePredict() {
+    showLoading();
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(doPredict, 300);
+  }
+
+  function showLoading() {
+    const el = document.getElementById('price-display');
+    el.innerHTML = '<span class="loading-dot"></span>';
+  }
+
+  async function doPredict() {
+    try {
+      const res = await fetch('/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(currentValues)
+      });
+
+      if (res.status === 503) {
+        document.getElementById('price-display').textContent = 'Model loading…';
+        return;
+      }
+
+      const data = await res.json();
+      if (res.ok) {
+        document.getElementById('price-display').textContent = data.predicted_price_formatted;
+        updateImpact();
+      } else {
+        document.getElementById('price-display').textContent = 'Error';
+      }
+    } catch (e) {
+      document.getElementById('price-display').textContent = 'Error';
+    }
+  }
+
+  function updateImpact() {
+    const container = document.getElementById('impact-container');
+    const feats = Object.keys(featureStats);
+
+    // Compute a simple impact score: known_sign × (value - mean) / std
+    const impacts = feats.map(feat => {
+      const stats = featureStats[feat];
+      const sign = KNOWN_SIGNS[feat] || 1;
+      const normalised = (currentValues[feat] - stats.mean) / (stats.std || 1);
+      return { feat, score: sign * normalised };
+    });
+
+    impacts.sort((a, b) => b.score - a.score);
+    const top3Up = impacts.slice(0, 3).filter(x => x.score > 0);
+    const top3Down = impacts.slice(-3).reverse().filter(x => x.score < 0);
+
+    let html = '';
+
+    if (top3Up.length) {
+      html += '<div class="impact-section-label up">↑ Pushing price up</div>';
+      for (const { feat } of top3Up) {
+        const label = (featureDescriptions[feat] || {}).label || feat;
+        html += `<span class="impact-tag up">${label}</span>`;
+      }
+    }
+
+    if (top3Down.length) {
+      html += '<div class="impact-section-label down">↓ Pushing price down</div>';
+      for (const { feat } of top3Down) {
+        const label = (featureDescriptions[feat] || {}).label || feat;
+        html += `<span class="impact-tag down">${label}</span>`;
+      }
+    }
+
+    if (!top3Up.length && !top3Down.length) {
+      html = '<div style="font-size:0.78rem;color:#94a3b8;">Set sliders away from mean to see impact.</div>';
+    }
+
+    container.innerHTML = html;
+  }
+
+  init();
+</script>
+</body>
+</html>

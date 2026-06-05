@@ -7,6 +7,9 @@
 ![scikit--learn](https://img.shields.io/badge/scikit--learn-orange)
 ![Jupyter](https://img.shields.io/badge/Jupyter-orange)
 ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-black)
+![Azure App Service](https://img.shields.io/badge/Azure_App_Service-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-green)
+![Docker](https://img.shields.io/badge/Docker-blue)
 
 # Boston House Price Analysis
 
@@ -15,6 +18,12 @@ Which neighbourhood characteristics actually drive residential property values �
 The raw price data carries a positive skew (skewness 1.46) that biases the residuals. Applying a log transformation to the target reduces residual skew to 0.09 and raises the test-set r² from 0.67 to 0.74 — a meaningful improvement in out-of-sample accuracy. The final model identifies number of rooms (`RM`) as the strongest positive predictor, valuing each additional room at roughly $3,109, while pollution (`NOX`), poverty (`LSTAT`), and crime (`CRIM`) each depress prices.
 
 The model produces a working valuation function: supply any combination of property characteristics and get a dollar estimate in return. An average Boston property across all 13 features is estimated at $20,703. An 8-room river-front property in a low-poverty area is estimated at $25,792.
+
+**Live predictor → [boston-house-price-xoc.azurewebsites.net](https://boston-house-price-xoc.azurewebsites.net)**
+&nbsp;&nbsp;·&nbsp;&nbsp;
+**API docs → [/docs](https://boston-house-price-xoc.azurewebsites.net/docs)**
+&nbsp;&nbsp;·&nbsp;&nbsp;
+**Notebook → notebooks/analysis/A_03_Multivariable_Regression_Complete.ipynb**
 
 ---
 
@@ -257,3 +266,41 @@ jupyter nbconvert --to html --no-input \
   notebooks/analysis/A_03_Multivariable_Regression_Complete.ipynb
 mv index.html notebook_web_render/index.html
 ```
+
+---
+
+## 11. Deployment
+
+FastAPI app deployed to Azure App Service (Free tier F1) via zip deploy.
+
+### Train and run locally
+
+```bash
+pip install -r requirements.txt
+python train.py                      # generates models/*.pkl and models/*.json
+uvicorn main:app --reload            # http://localhost:8000
+pytest tests/ -v                     # run API tests
+```
+
+### Docker
+
+```bash
+docker build -t boston-house-price .
+docker run -p 8000:8000 boston-house-price
+```
+
+### Azure deployment
+
+```bash
+az group create --name boston-house-price-rg --location westeurope
+az appservice plan create --name boston-house-price-plan --resource-group boston-house-price-rg --sku B1 --is-linux
+# Scale to F1 via portal after creation
+az webapp create --name boston-house-price-xoc --resource-group boston-house-price-rg --plan boston-house-price-plan --runtime "PYTHON:3.11"
+az webapp config set --name boston-house-price-xoc --resource-group boston-house-price-rg --startup-file "gunicorn main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --timeout 600"
+az webapp config appsettings set --name boston-house-price-xoc --resource-group boston-house-price-rg --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
+cd boston-house-price-analysis && zip -r deploy.zip . -x "*.git*" -x "venv/*" -x "__pycache__/*" -x "*.ipynb_checkpoints*"
+az webapp deployment source config-zip --name boston-house-price-xoc --resource-group boston-house-price-rg --src deploy.zip
+```
+
+Live: https://boston-house-price-xoc.azurewebsites.net  
+API docs: https://boston-house-price-xoc.azurewebsites.net/docs
