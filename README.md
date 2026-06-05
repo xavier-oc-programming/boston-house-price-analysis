@@ -65,15 +65,16 @@ jupyter notebook
 The model is split across three files with a clear separation of concerns:
 
 ```
-train.py
-Runs once. Fits StandardScaler + LinearRegression on log(PRICE),saves scaler.pkl, model.pkl, and three JSON files to models/.
+train.py          Runs once. Fits StandardScaler + LinearRegression on
+                  log(PRICE),saves scaler.pkl, model.pkl, and three JSON files to models/.
 
 predictor.py      Loaded at API startup. Lazy-loads the pkl files on first call
                   arranges features in the correct order, scales the input, predicts log price,
                   then returns np.exp(prediction) × 1000 to convert back to dollars.
 
-main.py
-FastAPI layer. Validates the incoming request with Pydantic,calls predictor predict_price(), formats the response. Also serves the slider UI via Jinja2 template.
+main.py           FastAPI layer. Validates the incoming request with Pydantic,
+                  calls predictor predict_price(), formats the response. Also serves
+                  the slider UI via Jinja2 template.
 ```
 
 The `models/` directory is committed to the repo so the API and CI can load the model without needing to retrain. To regenerate (e.g. after changing the training data), run `python train.py` and commit the updated files.
