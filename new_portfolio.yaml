@@ -1,7 +1,7 @@
 title: Boston House Price Predictor
 slug: boston-house-price-analysis
 category: data
-date: 2026-06-05
+date: 2026-04-13
 featured: false
 tags: machine-learning, regression, data-analysis, scikit-learn, azure, deployment, REST-API, docker, CI-CD, jupyter, web-app, feature-engineering, visualisation, python
 tech_stack: Python, scikit-learn, pandas, NumPy, Matplotlib, Seaborn, Plotly, FastAPI, Uvicorn, Gunicorn, Docker, Azure App Service, GitHub Actions, pytest, Jupyter
