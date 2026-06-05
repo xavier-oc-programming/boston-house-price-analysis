@@ -39,9 +39,10 @@ jobs:
             main.py predictor.py \
             requirements.txt startup.txt \
             models/ templates/
-          az webapp deploy \
-            --name boston-house-price-xoc \
-            --resource-group boston-house-price-rg \
-            --src-path deploy.zip \
-            --type zip \
-            --async true
+          TOKEN=$(az account get-access-token --query accessToken -o tsv)
+          curl -X POST \
+            "https://boston-house-price-xoc.scm.azurewebsites.net/api/zipdeploy" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/zip" \
+            --data-binary @deploy.zip \
+            --silent --show-error
