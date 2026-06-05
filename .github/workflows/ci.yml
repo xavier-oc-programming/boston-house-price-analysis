@@ -35,14 +35,10 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
       - name: Zip and deploy
         run: |
-          zip -rq deploy.zip . \
-            --exclude "*.git*" \
-            --exclude "venv/*" \
-            --exclude "__pycache__/*" \
-            --exclude "*.ipynb_checkpoints*" \
-            --exclude ".DS_Store" \
-            --exclude "deploy.zip" \
-            --exclude ".pytest_cache/*"
+          zip -rq deploy.zip \
+            main.py predictor.py \
+            requirements.txt startup.txt \
+            models/ templates/
           az webapp deploy \
             --name boston-house-price-xoc \
             --resource-group boston-house-price-rg \
