@@ -65,17 +65,15 @@ jupyter notebook
 The model is split across three files with a clear separation of concerns:
 
 ```
-train.py         Runs once. Fits StandardScaler + LinearRegression on log(PRICE),
-                 saves scaler.pkl, model.pkl, and three JSON files to models/.
+train.py
+Runs once. Fits StandardScaler + LinearRegression on log(PRICE),saves scaler.pkl, model.pkl, and three JSON files to models/.
 
-predictor.py     Loaded at API startup. Lazy-loads the pkl files on first call,
-                 arranges features in the correct order, scales the input,
-                 predicts log price, then returns np.exp(prediction) × 1000
-                 to convert back to dollars.
+predictor.py      Loaded at API startup. Lazy-loads the pkl files on first call
+                  arranges features in the correct order, scales the input, predicts log price,
+                  then returns np.exp(prediction) × 1000 to convert back to dollars.
 
-main.py          FastAPI layer. Validates the incoming request with Pydantic,
-                 calls predictor.predict_price(), formats the response.
-                 Also serves the slider UI via Jinja2 template.
+main.py
+FastAPI layer. Validates the incoming request with Pydantic,calls predictor predict_price(), formats the response. Also serves the slider UI via Jinja2 template.
 ```
 
 The `models/` directory is committed to the repo so the API and CI can load the model without needing to retrain. To regenerate (e.g. after changing the training data), run `python train.py` and commit the updated files.
@@ -97,23 +95,32 @@ pytest tests/ -v
 
 ### API endpoints
 
-| Method | Route | Description |
-|--------|-------|-------------|
-| `GET` | `/` | Slider UI |
-| `GET` | `/health` | Model status and r² |
-| `POST` | `/predict` | Price prediction from 13 features |
-| `GET` | `/api/feature-stats` | Min / max / mean / std per feature (used for slider ranges) |
-| `GET` | `/api/model-info` | r² values, feature list, target transform |
-| `GET` | `/api/feature-descriptions` | Plain-English labels for each feature |
+| Method | Route                       | Description                                                 |
+| ------ | --------------------------- | ----------------------------------------------------------- |
+| `GET`  | `/`                         | Slider UI                                                   |
+| `GET`  | `/health`                   | Model status and r²                                         |
+| `POST` | `/predict`                  | Price prediction from 13 features                           |
+| `GET`  | `/api/feature-stats`        | Min / max / mean / std per feature (used for slider ranges) |
+| `GET`  | `/api/model-info`           | r² values, feature list, target transform                   |
+| `GET`  | `/api/feature-descriptions` | Plain-English labels for each feature                       |
 
 **Example `POST /predict` request:**
 
 ```json
 {
-  "CRIM": 3.61, "ZN": 11.36, "INDUS": 11.14, "CHAS": 0.07,
-  "NOX": 0.55, "RM": 6.28, "AGE": 68.57, "DIS": 3.80,
-  "RAD": 9.55, "TAX": 408.24, "PTRATIO": 18.46,
-  "B": 356.67, "LSTAT": 12.65
+  "CRIM": 3.61,
+  "ZN": 11.36,
+  "INDUS": 11.14,
+  "CHAS": 0.07,
+  "NOX": 0.55,
+  "RM": 6.28,
+  "AGE": 68.57,
+  "DIS": 3.8,
+  "RAD": 9.55,
+  "TAX": 408.24,
+  "PTRATIO": 18.46,
+  "B": 356.67,
+  "LSTAT": 12.65
 }
 ```
 
@@ -133,22 +140,22 @@ pytest tests/ -v
 
 `data/boston.csv` — 506 rows, 14 columns, no missing values, no duplicates.
 
-| Column | Description |
-|--------|-------------|
-| CRIM | Per capita crime rate by town |
-| ZN | % residential land zoned for large lots |
-| INDUS | % non-retail business acres |
-| CHAS | Charles River dummy (1 = borders river) |
-| NOX | Nitric oxides concentration |
-| RM | Average rooms per dwelling |
-| AGE | % units built before 1940 |
-| DIS | Weighted distance to employment centres |
-| RAD | Highway accessibility index |
-| TAX | Property tax rate per $10,000 |
-| PTRATIO | Pupils per teacher |
-| B | 1000(Bk − 0.63)² where Bk = % Black residents |
-| LSTAT | % lower-status population |
-| **PRICE** | **Target — median home value in $1,000s** |
+| Column    | Description                                   |
+| --------- | --------------------------------------------- |
+| CRIM      | Per capita crime rate by town                 |
+| ZN        | % residential land zoned for large lots       |
+| INDUS     | % non-retail business acres                   |
+| CHAS      | Charles River dummy (1 = borders river)       |
+| NOX       | Nitric oxides concentration                   |
+| RM        | Average rooms per dwelling                    |
+| AGE       | % units built before 1940                     |
+| DIS       | Weighted distance to employment centres       |
+| RAD       | Highway accessibility index                   |
+| TAX       | Property tax rate per $10,000                 |
+| PTRATIO   | Pupils per teacher                            |
+| B         | 1000(Bk − 0.63)² where Bk = % Black residents |
+| LSTAT     | % lower-status population                     |
+| **PRICE** | **Target — median home value in $1,000s**     |
 
 ---
 
@@ -198,14 +205,28 @@ pytest tests/ -v
 
 ## Deployment
 
-Azure App Service, Free tier (F1), Linux, Python 3.11.
+**Platform:** Azure App Service, Free tier (F1), Linux, Python 3.11  
+**Method:** zip deploy — the repo is zipped locally and uploaded directly to Azure. Azure then runs `pip install -r requirements.txt` on the server (`SCM_DO_BUILD_DURING_DEPLOYMENT=true`) and starts the app with the gunicorn command set in `startup.txt`.
+
+**Why gunicorn + uvicorn worker?** FastAPI is an ASGI app. Gunicorn manages the worker process lifecycle; the UvicornWorker gives it ASGI support. Azure App Service expects a long-running process bound to port 8000 — the `--timeout 600` prevents the free tier from killing slow cold starts.
+
+**Why `models/` is committed:** Azure App Service does not run `train.py` on deployment. The pkl files must already be present in the zip so `predictor.py` can load them at startup. If you retrain locally, commit the updated `models/` files before re-deploying.
+
+### Steps
 
 ```bash
+# 1. Create the resource group and F1 plan
 az group create --name boston-house-price-rg --location westeurope
 az appservice plan create --name boston-house-price-plan --resource-group boston-house-price-rg --sku F1 --is-linux
+
+# 2. Create the web app (Python 3.11 runtime)
 az webapp create --name boston-house-price-xoc --resource-group boston-house-price-rg --plan boston-house-price-plan --runtime "PYTHON:3.11"
+
+# 3. Set the startup command and tell Azure to pip install on deploy
 az webapp config set --name boston-house-price-xoc --resource-group boston-house-price-rg --startup-file "gunicorn main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --timeout 600"
 az webapp config appsettings set --name boston-house-price-xoc --resource-group boston-house-price-rg --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
+
+# 4. Zip and deploy
 zip -r deploy.zip . -x "*.git*" -x "venv/*" -x "__pycache__/*" -x "*.ipynb_checkpoints*"
 az webapp deployment source config-zip --name boston-house-price-xoc --resource-group boston-house-price-rg --src deploy.zip
 ```
