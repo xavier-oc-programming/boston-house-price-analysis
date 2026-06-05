@@ -293,8 +293,7 @@ docker run -p 8000:8000 boston-house-price
 
 ```bash
 az group create --name boston-house-price-rg --location westeurope
-az appservice plan create --name boston-house-price-plan --resource-group boston-house-price-rg --sku B1 --is-linux
-# Scale to F1 via portal after creation
+az appservice plan create --name boston-house-price-plan --resource-group boston-house-price-rg --sku F1 --is-linux
 az webapp create --name boston-house-price-xoc --resource-group boston-house-price-rg --plan boston-house-price-plan --runtime "PYTHON:3.11"
 az webapp config set --name boston-house-price-xoc --resource-group boston-house-price-rg --startup-file "gunicorn main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --timeout 600"
 az webapp config appsettings set --name boston-house-price-xoc --resource-group boston-house-price-rg --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
