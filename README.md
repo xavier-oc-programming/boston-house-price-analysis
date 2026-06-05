@@ -25,6 +25,30 @@ FastAPI app that wraps the trained model in a REST API and serves an interactive
 
 ---
 
+## If you're cloning this repo
+
+**Just want to run the analysis?**
+```bash
+pip install -r requirements.txt
+jupyter notebook
+# open notebooks/analysis/A_03_Multivariable_Regression_Complete.ipynb
+```
+
+**Want to run the web app locally?**
+```bash
+pip install -r requirements.txt
+uvicorn main:app --reload
+# open http://localhost:8000
+```
+The `models/` pkl files are committed so the app loads and serves predictions immediately — no need to run `train.py` first.
+
+**Want to deploy your own Azure instance?**
+Run the full setup from the [Deployment](#deployment) section below. This creates your own resource group, App Service plan, and web app from scratch.
+
+Note: the CI/CD deploy job is tied to this repo's `AZURE_CREDENTIALS` secret (linked to a specific Azure subscription). If you fork, tests will still pass but the deploy job will fail — you'd need to add your own `AZURE_CREDENTIALS` secret pointing to your Azure account.
+
+---
+
 ## Part 1 — Analysis
 
 ### Run the notebook
